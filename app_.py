@@ -87,8 +87,22 @@ with col1:
     date = st.date_input("Survey date", value=datetime.today()).strftime("%d-%m-%Y")
     client = st.text_input("Client name")
     loc_name = st.text_input("Location Name")
-    lat = st.number_input("Latitude",value=0.0,step=0.0001,format="%.4f")
-    long = st.number_input("Longitude",value=0.0,step=0.0001,format="%.4f")
+    #lat = st.number_input("Latitude",value=0.0,step=0.0001,format="%.4f")
+    lat = st.text_input("Latitude")
+    try:
+        lat = float(lat)
+        lat = round(lat,6)
+    except:
+        lat = None
+        
+    #long = st.number_input("Longitude",value=0.0,step=0.0001,format="%.4f")
+    long = st.text_input("Longitude")
+    try:
+        long = float(long)
+        long = round(long,6)
+    except:
+        long = None
+    
     geology = st.text_input("Geology")
     soiltype = st.text_input("Soil type/Color")
     linedir = st.text_input("Line direction")
@@ -103,9 +117,15 @@ if mode == "Profiling":
         P1P2 = st.number_input("Enter P1P2 interval (e.g. 5)", min_value=1.0, value=10.0, step=1.0)
 
         st.subheader("Line Setup")
-        line_number = st.text_input("Line number (e.g. N50 or S50)",value="L0")
+        line_number = st.text_input("Line number (e.g. N50 or S50)")
         station = st.number_input("Station (e.g. 95)", step=1)
-        resistance = st.number_input("Resistance (ohms)",value=0.0,step=0.00001,format="%f")
+        #resistance = st.number_input("Resistance (ohms)", value=0.0,format="%.5f")
+        resistance = st.text_input("Resistance (ohms)")
+        try:
+            resistance = float(resistance)
+            resistance = round(resistance,6)
+        except:
+            resistance = None
         r_mark = st.text_input("Remark")
 
         if st.button("Record Profiling Data"):
@@ -130,7 +150,22 @@ if mode == "Profiling":
                         "data": {},
                     }
                 gfactor = get_geometric_factor("Profiling", C1C2, line_number, station)
-                resistivity = round(resistance * gfactor, 2)
+                #resistivity = round(resistance * gfactor, 6)
+                
+                if resistance is None:
+                    st.error("⚠️ Please enter a proper resistance value.")
+                    resistivity = None
+ 
+                elif gfactor is None:
+                    st.error("⚠️ Please enter a proper gfactor value.")
+                    resistivity = None
+                    
+                else:
+                    resistivity = round(resistance * gfactor, 6)
+                        
+           
+                
+                
                 st.session_state.lines[line_number]["data"][station] = {
                     "station": station,
                     "resistance": resistance,
@@ -148,11 +183,16 @@ if mode == "Sounding":
         prof_type = st.selectbox("Method", ["Schlumberger", "Other"])
         C1C2_val = st.number_input("Enter C1C2 (AB spacing)", min_value=1.0, value=10.0, step=1.0)
         P1P2_val = st.number_input("Enter P1P2 (MN spacing)", min_value=1.0, value=1.0, step=1.0)
-        resistance = st.number_input("Resistance (ohms)", value=0.0, step=0.00001,format="%.5f")
-
+        #resistance = st.number_input("Resistance (ohms)", value=0.0, step=0.00001,format="%.5f")
+        resistance = st.text_input("Resistance (ohms)")
+        try:
+            resistance = float(resistance)
+            resistance = round(resistance,6)
+        except:
+            resistance = None
         if st.button("Record Sounding Data"):
             gfactor = get_geometric_factor("Sounding", C1C2_val, P1P2=P1P2_val)
-            resistivity = round(resistance * gfactor, 8)
+            resistivity = round(resistance * gfactor, 6)
             st.session_state.sounding[(C1C2_val, P1P2_val)] = {
                 "C1C2": C1C2_val,
                 "P1P2": P1P2_val,
@@ -281,7 +321,3 @@ if st.button("Download Excel"):
             file_name=f"{client}_{loc_name}_{date}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-
-
-
-
