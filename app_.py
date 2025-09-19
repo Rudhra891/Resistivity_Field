@@ -88,7 +88,7 @@ with col1:
     client = st.text_input("Client name")
     loc_name = st.text_input("Location Name")
     #lat = st.number_input("Latitude",value=0.0,step=0.0001,format="%.4f")
-    lat = st.text_input("Latitude")
+    lat = st.text_input("Latitude",placeholder="17.24586")
     try:
         lat = float(lat)
         lat = round(lat,6)
@@ -96,7 +96,7 @@ with col1:
         lat = None
         
     #long = st.number_input("Longitude",value=0.0,step=0.0001,format="%.4f")
-    long = st.text_input("Longitude")
+    long = st.text_input("Longitude",placeholder="79.25487")
     try:
         long = float(long)
         long = round(long,6)
@@ -128,7 +128,7 @@ with col1:
             soiltype = soiltype_manual
     
     
-    linedir = st.text_input("Line direction")
+    linedir = st.text_input("Line direction",placeholder="NS or EW or NE-SW or NW-SE")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- PROFILING WORKFLOW ---
