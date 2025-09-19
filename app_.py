@@ -103,7 +103,7 @@ if mode == "Profiling":
         P1P2 = st.number_input("Enter P1P2 interval (e.g. 5)", min_value=1.0, value=10.0, step=1.0)
 
         st.subheader("Line Setup")
-        line_number = st.text_input("Line number (e.g. N50 or S50)")
+        line_number = st.text_input("Line number (e.g. N50 or S50)",value="L0")
         station = st.number_input("Station (e.g. 95)", step=1)
         resistance = st.number_input("Resistance (ohms)", value=0.0, step=0.00001,format="%.5f")
         r_mark = st.text_input("Remark")
@@ -281,3 +281,4 @@ if st.button("Download Excel"):
             file_name=f"{client}_{loc_name}_{date}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+
