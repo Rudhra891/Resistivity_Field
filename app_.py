@@ -84,13 +84,13 @@ with col1:
 with col1:
     st.markdown('<div class="card" style="margin-top:12px">', unsafe_allow_html=True)
     st.subheader("Survey Info")
-    date = st.date_input("Survey date", value=datetime.today())
+    date = st.date_input("Survey date", value=datetime.today()).strftime("%d-%m-%Y")
     client = st.text_input("Client name")
     loc_name = st.text_input("Location Name")
-    lat = st.number_input("Latitude")
-    long = st.number_input("Longitude")
+    lat = st.number_input("Latitude",value=0.0,step=0.0001,format="%.4f")
+    long = st.number_input("Longitude",value=0.0,step=0.0001,format="%.4f")
     geology = st.text_input("Geology")
-    soiltype = st.text_input("Soil type")
+    soiltype = st.text_input("Soil type/Color")
     linedir = st.text_input("Line direction")
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -105,7 +105,7 @@ if mode == "Profiling":
         st.subheader("Line Setup")
         line_number = st.text_input("Line number (e.g. N50 or S50)")
         station = st.number_input("Station (e.g. 95)", step=1)
-        resistance = st.number_input("Resistance (ohms)", value=0.0, step=0.1)
+        resistance = st.number_input("Resistance (ohms)", value=0.0, step=0.00001,format="%.5f")
         r_mark = st.text_input("Remark")
 
         if st.button("Record Profiling Data"):
@@ -121,7 +121,7 @@ if mode == "Profiling":
                             "Latitude": lat,
                             "Longitude": long,
                             "Geology": geology,
-                            "Soil Type": soiltype,
+                            "Soil Type/Color": soiltype,
                             "Line direction": linedir,
                             "Method": prof_type,
                             "C1C2": C1C2,
@@ -130,7 +130,7 @@ if mode == "Profiling":
                         "data": {},
                     }
                 gfactor = get_geometric_factor("Profiling", C1C2, line_number, station)
-                resistivity = round(resistance * gfactor, 6)
+                resistivity = round(resistance * gfactor, 2)
                 st.session_state.lines[line_number]["data"][station] = {
                     "station": station,
                     "resistance": resistance,
@@ -148,11 +148,11 @@ if mode == "Sounding":
         prof_type = st.selectbox("Method", ["Schlumberger", "Other"])
         C1C2_val = st.number_input("Enter C1C2 (AB spacing)", min_value=1.0, value=10.0, step=1.0)
         P1P2_val = st.number_input("Enter P1P2 (MN spacing)", min_value=1.0, value=1.0, step=1.0)
-        resistance = st.number_input("Resistance (ohms)", value=0.0, step=0.1)
+        resistance = st.number_input("Resistance (ohms)", value=0.0, step=0.00001,format="%.5f")
 
         if st.button("Record Sounding Data"):
             gfactor = get_geometric_factor("Sounding", C1C2_val, P1P2=P1P2_val)
-            resistivity = round(resistance * gfactor, 6)
+            resistivity = round(resistance * gfactor, 8)
             st.session_state.sounding[(C1C2_val, P1P2_val)] = {
                 "C1C2": C1C2_val,
                 "P1P2": P1P2_val,
@@ -197,7 +197,7 @@ with col2:
                 "Latitude": lat,
                 "Longitude": long,
                 "Geology": geology,
-                "Soil Type": soiltype,
+                "Soil Type/Color": soiltype,
                 "Line direction": linedir,
                 "Method": prof_type,
             })
@@ -278,6 +278,6 @@ if st.button("Download Excel"):
         st.download_button(
             "Download Excel File",
             data=excel_bytes,
-            file_name="resistivity_data.xlsx",
+            file_name=f"{client}_{loc_name}_{date}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
