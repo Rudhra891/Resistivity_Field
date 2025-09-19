@@ -105,7 +105,7 @@ if mode == "Profiling":
         st.subheader("Line Setup")
         line_number = st.text_input("Line number (e.g. N50 or S50)",value="L0")
         station = st.number_input("Station (e.g. 95)", step=1)
-        resistance = st.number_input("Resistance (ohms)", value=0.0,format="%.5f")
+        resistance = st.number_input("Resistance (ohms)",min_value=0.0,value=0.0,format="%.5f")
         r_mark = st.text_input("Remark")
 
         if st.button("Record Profiling Data"):
@@ -281,5 +281,6 @@ if st.button("Download Excel"):
             file_name=f"{client}_{loc_name}_{date}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+
 
 
