@@ -103,8 +103,31 @@ with col1:
     except:
         long = None
     
-    geology = st.text_input("Geology")
-    soiltype = st.text_input("Soil type/Color")
+    #geology = st.text_input("Geology")
+    
+    geology_options= ["Granitic","Granitoid gneiss","gneiss","charnockite", "khondalite","Basaltic","Limestone","Laterite","Quartzite",
+                       "Migmatite","Shale","Schist","Dolerite","Anorthosite / gabbro / dunite","Porphyritic granite","Metabasite","Migmatitic","Alluvial-covered basement"
+                      ]
+    geology = st.selectbox("Geology",
+                            options=geology_options + ["Other"]                    
+    )
+    if geology == "Other":
+        geology_manual = st.text_input("Geology")
+        if geology_manual:
+            geology = geology_manual
+    
+    
+    #soiltype = st.text_input("Soil type/Color")
+    soil_options= ["Black Cotton Soil","Red Soil","Brown soil(dark)","Brown Soil (light)","Laterite soil","Clay"]
+    soiltype = st.selectbox("Soil type/Color",
+                            options=soil_options + ["Other"]                    
+    )
+    if soiltype == "Other":
+        soiltype_manual = st.text_input("Soil Type/Color: ")
+        if soiltype_manual:
+            soiltype = soiltype_manual
+    
+    
     linedir = st.text_input("Line direction")
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -113,12 +136,14 @@ if mode == "Profiling":
     with col1:
         st.markdown('<div class="card" style="margin-top:12px">', unsafe_allow_html=True)
         prof_type = st.selectbox("Method", ["Gradient", "Wenner"])
-        C1C2 = st.number_input("Enter C1C2 distance (e.g. 300 or 400)", min_value=1.0, value=400.0, step=1.0)
+        C1C2 = st.number_input("Enter C1C2 distance (e.g. 300 or 400)", min_value=1.0, value=400.0, step=100.0)
         P1P2 = st.number_input("Enter P1P2 interval (e.g. 5)", min_value=1.0, value=10.0, step=1.0)
 
         st.subheader("Line Setup")
-        line_number = st.text_input("Line number (e.g. N50 or S50)")
-        station = st.number_input("Station (e.g. 95)", step=1)
+        line_number = st.text_input("Line number",placeholder="L0/N50/S50/E50/W50/NE50/SW50/SE50/NW50")
+        
+        
+        station = st.number_input("Station",value= None,placeholder="35/-35", step=5)
         #resistance = st.number_input("Resistance (ohms)", value=0.0,format="%.5f")
         resistance = st.text_input("Resistance (ohms)")
         try:
@@ -321,3 +346,4 @@ if st.button("Download Excel"):
             file_name=f"{client}_{loc_name}_{date}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+
