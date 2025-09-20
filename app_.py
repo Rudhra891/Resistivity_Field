@@ -62,6 +62,30 @@ def get_geometric_factor(mode, C1C2, line_number=None, station=None, P1P2=None):
             return float(match["GeometricFactor"].values[0])
         else:
             return 1.0
+            
+    
+    
+    elif mode == "Sounding":
+        if "sounding" in GEOM_TABLES:                 # First, try to get the factor from the table
+            df = GEOM_TABLES["sounding"]
+            match = df[(df["C1C2"] == C1C2) & (df["P1P2"] == P1P2)]
+            if not match.empty:
+                return float(match["GeometricFactor"].values[0])
+        # If we reach here, table doesn't have the factor or table missing
+        # Use the custom formula instead of default 1.0
+        try:
+            # Note: C1C2 and P1P2 expected as floats
+            # your formula: 3.1428 * ( ((C1C2/2)^2 - (P1P2)^2) / (2 * P1P2) )
+            # In Python '^' is bitwise XOR; for power use '**'
+            geom = 3.1428 * ( ((C1C2_val) ** 2 - (P1P2_val) ** 2) / (2 * P1P2_val) )
+            return float(geom)
+        except Exception as e:
+            # If formula fails (e.g. P1P2 is zero or None), fallback to 1.0
+            return 1.0
+    else:
+        return 1.0
+
+    '''
     elif mode == "Sounding":
         if "sounding" not in GEOM_TABLES:
             return 1.0
@@ -73,6 +97,9 @@ def get_geometric_factor(mode, C1C2, line_number=None, station=None, P1P2=None):
             return 1.0
     else:
         return 1.0
+    '''
+
+
 
 # Sidebar/left panel for survey setup
 col1, col2 = st.columns([1, 2])
@@ -206,8 +233,26 @@ if mode == "Sounding":
     with col1:
         st.markdown('<div class="card" style="margin-top:12px">', unsafe_allow_html=True)
         prof_type = st.selectbox("Method", ["Schlumberger", "Other"])
-        C1C2_val = st.number_input("Enter C1C2 (AB spacing)", min_value=1.0, value=10.0, step=1.0)
-        P1P2_val = st.number_input("Enter P1P2 (MN spacing)", min_value=1.0, value=1.0, step=1.0)
+        
+        #C1C2_val = st.number_input("Enter C1C2 (AB spacing)", min_value=1.0, value=10.0, step=1.0)
+        C1C2_val = st.text_input("Enter C1C2/2 (AB/2)")
+        try:
+            C1C2_val = float(C1C2_val)
+            C1C2_val = round(C1C2_val,6)
+        except:
+            C1C2_val = None
+        
+        
+        #P1P2_val = st.number_input("Enter P1P2 (MN spacing)", min_value=1.0, value=1.0, step=1.0)
+        
+        P1P2_val = st.text_input("Enter P1P2/2 (MN/2)")
+        try:
+            P1P2_val = float(P1P2_val)
+            P1P2_val = round(P1P2_val,6)
+        except:
+            P1P2_val = None
+        
+        
         #resistance = st.number_input("Resistance (ohms)", value=0.0, step=0.00001,format="%.5f")
         resistance = st.text_input("Resistance (ohms)")
         try:
@@ -215,17 +260,33 @@ if mode == "Sounding":
             resistance = round(resistance,6)
         except:
             resistance = None
+        r_mark = st.text_input("Remark")
         if st.button("Record Sounding Data"):
             gfactor = get_geometric_factor("Sounding", C1C2_val, P1P2=P1P2_val)
-            resistivity = round(resistance * gfactor, 6)
+            #resistivity = round(resistance * gfactor, 6)
+            
+            if resistance is None:
+                st.error("⚠️ Please enter a proper resistance value.")
+                resistivity = None
+ 
+            elif gfactor is None:
+                st.error("⚠️ Please enter a proper gfactor value.")
+                resistivity = None
+                    
+            else:
+                resistivity = round(resistance * gfactor, 6)
+            
+            
+            
             st.session_state.sounding[(C1C2_val, P1P2_val)] = {
-                "C1C2": C1C2_val,
-                "P1P2": P1P2_val,
+                "C1C2/2": C1C2_val,
+                "P1P2/2": P1P2_val,
                 "resistance": resistance,
                 "gfactor": gfactor,
                 "resistivity": resistivity,
+                "remark":r_mark
             }
-            st.success(f"Recorded Sounding: C1C2={C1C2_val}, P1P2={P1P2_val}")
+            st.success(f"Recorded Sounding: C1C2/2={C1C2_val}, P1P2/2={P1P2_val}")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # Right panel: view/edit data
@@ -271,8 +332,8 @@ with col2:
 
             if not df.empty:
                 fig, ax = plt.subplots()
-                ax.plot(df["C1C2"], df["resistivity"], marker="o")
-                ax.set_xlabel("C1C2 (AB)")
+                ax.plot(df["C1C2/2"], df["resistivity"], marker="o")
+                ax.set_xlabel("C1C2/2 (AB/2)")
                 ax.set_ylabel("Resistivity")
                 ax.set_title("Sounding Curve")
                 ax.grid(True)
@@ -284,20 +345,23 @@ with col2:
 st.markdown("---")
 st.header("Export to Excel")
 
-def create_excel(all_lines: dict, sounding: dict):
+def create_excel(all_lines: dict, sounding: dict, sounding_meta: dict):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         workbook = writer.book
 
-        # Profiling
+        # --- Profiling export ---
         for key, val in all_lines.items():
-            sheetname = f"{key}_data"[:31]
+            sheetname = f"{key}_data"[:31]  # Excel sheet names max 31 chars
+            # Write profiling metadata
             meta_rows = pd.DataFrame(list(val["meta"].items()), columns=["Field", "Value"])
             meta_rows.to_excel(writer, sheet_name=sheetname, index=False, startrow=0)
 
+            # Then write profiling data below metadata
             df = pd.DataFrame(val["data"].values())
             df.to_excel(writer, sheet_name=sheetname, index=False, startrow=len(meta_rows) + 2)
 
+            # Add graph in a separate sheet
             if not df.empty:
                 fig, ax = plt.subplots()
                 ax.plot(df["station"], df["resistivity"], marker="o")
@@ -313,15 +377,22 @@ def create_excel(all_lines: dict, sounding: dict):
                 worksheet.insert_image("B2", f"{key}.png", {"image_data": imgdata})
                 plt.close(fig)
 
-        # Sounding
+        # --- Sounding export with metadata ---
         if sounding:
-            df = pd.DataFrame(sounding.values())
-            df.to_excel(writer, sheet_name="Sounding_Data", index=False)
+            sheetname = "Sounding_Data"
+            # Write metadata at top
+            meta_rows_s = pd.DataFrame(list(sounding_meta.items()), columns=["Field", "Value"])
+            meta_rows_s.to_excel(writer, sheet_name=sheetname, index=False, startrow=0)
 
-            if not df.empty:
+            # Then write sounding data below metadata
+            df_s = pd.DataFrame(sounding.values())
+            df_s.to_excel(writer, sheet_name=sheetname, index=False, startrow=len(meta_rows_s) + 2)
+
+            # Add sounding graph in separate sheet
+            if not df_s.empty:
                 fig, ax = plt.subplots()
-                ax.plot(df["C1C2"], df["resistivity"], marker="o")
-                ax.set_xlabel("C1C2 (AB)")
+                ax.plot(df_s["C1C2/2"], df_s["resistivity"], marker="o")
+                ax.set_xlabel("C1C2/2 (AB/2)")
                 ax.set_ylabel("Resistivity")
                 ax.set_title("Sounding Curve")
                 ax.grid(True)
@@ -335,11 +406,28 @@ def create_excel(all_lines: dict, sounding: dict):
     output.seek(0)
     return output
 
+
 if st.button("Download Excel"):
     if not st.session_state.lines and not st.session_state.sounding:
         st.error("No data to export")
     else:
-        excel_bytes = create_excel(st.session_state.lines, st.session_state.sounding)
+        # Build the metadata dict to pass
+        sounding_meta = {
+            "Date": str(date),
+            "Client": client,
+            "Location": loc_name,
+            "Latitude": lat,
+            "Longitude": long,
+            "Geology": geology,
+            "Soil Type/Color": soiltype,
+            "Line direction": linedir,
+            "Method": mode,  # or the method used for sounding
+        }
+        excel_bytes = create_excel(
+            st.session_state.lines,
+            st.session_state.sounding,
+            sounding_meta
+        )
         st.download_button(
             "Download Excel File",
             data=excel_bytes,
