@@ -5,6 +5,7 @@ import io
 from datetime import datetime
 import matplotlib.pyplot as plt
 import xlsxwriter
+from streamlit_searchbox import st_searchbox
 
 st.set_page_config(page_title="RESISTIVITY DATA VIEWER", layout="wide")
 
@@ -16,7 +17,7 @@ st.markdown(
       background: background-size: 100% 100%;
       background-position: 0px 0px;
       background-image: linear-gradient(90deg, #A044D6FF 0%, #71C4FFFF 100%);
-      color: white;
+      color: black;
     }
     .big-title {
       font-size:40px;
@@ -45,6 +46,7 @@ def load_geometric_table():
     try:
         tables[400] = pd.read_excel("geom_400.xlsx")
         tables[300] = pd.read_excel("geom_300.xlsx")
+        tables[200] = pd.read_excel("geom_200.xlsx")
         tables["sounding"] = pd.read_excel("sound_geom.xlsx")
     except Exception as e:
         st.warning(f"Could not load geometric factor files: {e}")
@@ -170,7 +172,61 @@ if mode == "Profiling":
         line_number = st.text_input("Line number",placeholder="L0/N50/S50/E50/W50/NE50/SW50/SE50/NW50")
         
         
-        station = st.number_input("Station",value= None,placeholder="35/-35", step=5)
+        #station = st.number_input("Station",value= None,placeholder="35/-35", step=5)
+        
+        stations_400 = [
+                        "5","15","25","35","45","55","65","75","85","95","105","115","125","135","145","155","165",
+                       "-5","-15","-25","-35","-45","-55","-65","-75","-85","-95","-105","-115","-125","-135","-145","-155","-165"
+                        ]
+                        
+        stations_300 = [
+                        "5","15","25","35","45","55","65","75","85","95","105","115","125",
+                       "-5","-15","-25","-35","-45","-55","-65","-75","-85","-95","-105","-115","-125"
+                        ]
+
+
+        stations_200  = [
+                        "5","15","25","35","45","55","65","75",
+                        "-5","-15","-25","-35","-45","-55","-65","-75"
+                        ]
+        
+        def search_nums(term: str) -> list[str]:
+            if C1C2 == 400:
+                options = stations_400
+            elif C1C2 == 300:
+                options = stations_300
+            elif C1C2 == 200:
+                options = stations_200
+            else:
+                return []  # Return empty list if C1C2 is neither 400 nor 300
+
+            if not term:
+                return []  # Return empty list if term is empty
+
+            term = term.lower()  # Convert term to lowercase for case-insensitive matching
+            return [n for n in options if n.lower().startswith(term)]
+            
+        station = st_searchbox( 
+            search_function=search_nums,
+            placeholder="-35/35",
+            key="num_search",label="Station"
+        )
+
+        if station is not None and station != "":
+            try:
+                station = float(station)
+            except ValueError:
+                st.error(f"Could not convert '{station}' to float.\n Please select proper Value")
+                station = None
+        else:
+            station = None
+        
+        
+        
+        
+        
+        
+        
         #resistance = st.number_input("Resistance (ohms)", value=0.0,format="%.5f")
         resistance = st.text_input("Resistance (ohms)")
         try:
@@ -407,7 +463,7 @@ def create_excel(all_lines: dict, sounding: dict, sounding_meta: dict):
     return output
 
 
-if st.button("Download Excel"):
+if st.button("Export"):
     if not st.session_state.lines and not st.session_state.sounding:
         st.error("No data to export")
     else:
@@ -432,6 +488,6 @@ if st.button("Download Excel"):
             "Download Excel File",
             data=excel_bytes,
             file_name=f"{client}_{loc_name}_{date}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",icon="📥"
         )
 
