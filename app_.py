@@ -8,6 +8,7 @@ import xlsxwriter
 from streamlit_searchbox import st_searchbox
 
 st.set_page_config(page_title="RESISTIVITY DATA VIEWER", layout="wide")
+st.image("https://bebpl.com/wp-content/uploads/2023/07/BLUE-ENERGY-lFINAL-LOGO.png", width=200)
 
 # --- CSS for gradient background and nicer layout ---
 st.markdown(
@@ -48,6 +49,7 @@ def load_geometric_table():
         tables[300] = pd.read_excel("geom_300.xlsx")
         tables[200] = pd.read_excel("geom_200.xlsx")
         tables["sounding"] = pd.read_excel("sound_geom.xlsx")
+        
     except Exception as e:
         st.warning(f"Could not load geometric factor files: {e}")
     return tables
@@ -65,7 +67,7 @@ def get_geometric_factor(mode, C1C2, line_number=None, station=None, P1P2=None):
         else:
             return 1.0
             
-    
+    '''
     
     elif mode == "Sounding":
         if "sounding" in GEOM_TABLES:                 # First, try to get the factor from the table
@@ -75,19 +77,41 @@ def get_geometric_factor(mode, C1C2, line_number=None, station=None, P1P2=None):
                 return float(match["GeometricFactor"].values[0])
         # If we reach here, table doesn't have the factor or table missing
         # Use the custom formula instead of default 1.0
-        try:
-            # Note: C1C2 and P1P2 expected as floats
-            # your formula: 3.1428 * ( ((C1C2/2)^2 - (P1P2)^2) / (2 * P1P2) )
-            # In Python '^' is bitwise XOR; for power use '**'
-            geom = 3.1428 * ( ((C1C2_val) ** 2 - (P1P2_val) ** 2) / (2 * P1P2_val) )
-            return float(geom)
-        except Exception as e:
-            # If formula fails (e.g. P1P2 is zero or None), fallback to 1.0
-            return 1.0
+            if  prof_type == "Schlumberger":
+                #prof_type = st.selectbox("Method", ["Schlumberger", "Wenner","Dipole-Dipole"])
+                try:
+                    # Note: C1C2 and P1P2 expected as floats
+                    # your formula: 3.1428 * ( ((C1C2/2)^2 - (P1P2)^2) / (2 * P1P2) )
+                    # In Python '^' is bitwise XOR; for power use '**'
+                    geom = 3.1428 * ( ((C1C2_val) ** 2 - (P1P2_val) ** 2) / (2 * P1P2_val) )
+                    return float(geom)
+                except Exception as e:
+                    # If formula fails (e.g. P1P2 is zero or None), fallback to 1.0
+                    return 1.0
+            elif prof_type == "Wenner":
+                try:
+                    # Note: C1C2 and P1P2 expected as floats
+                    # your formula: 3.1428 * ( ((C1C2/2)^2 - (P1P2)^2) / (2 * P1P2) )
+                    # In Python '^' is bitwise XOR; for power use '**'
+                    C1C2_val = None
+                    geom = 2*3.1428 * (P1P2_val) 
+                    return float(geom)
+                except Exception as e:
+                    # If formula fails (e.g. P1P2 is zero or None), fallback to 1.0
+                    return 1.0
+                    
+            elif prof_type == "Dipole-Dipole":
+                try:
+                    geom = 3.1428 * C1C2_val*(C1C2_val+1)*(C1C2_val+2)*(P1P2_val) 
+                    return float(geom)
+                except Exception as e:
+                    # If formula fails (e.g. P1P2 is zero or None), fallback to 1.0
+                    return 1.0           
+            
     else:
         return 1.0
 
-    '''
+   
     elif mode == "Sounding":
         if "sounding" not in GEOM_TABLES:
             return 1.0
@@ -114,9 +138,10 @@ with col1:
     st.markdown('<div class="card" style="margin-top:12px">', unsafe_allow_html=True)
     st.subheader("Survey Info")
     date = st.date_input("Survey date", value=datetime.today()).strftime("%d-%m-%Y")
-    client = st.text_input("Client name")
-    loc_name = st.text_input("Location Name")
+    client = st.text_input("Client name",placeholder="Rudra Venkatesh")
+    loc_name = st.text_input("Location Name",placeholder="Village or VES N0.")
     #lat = st.number_input("Latitude",value=0.0,step=0.0001,format="%.4f")
+    
     lat = st.text_input("Latitude",placeholder="17.24586")
     try:
         lat = float(lat)
@@ -164,7 +189,7 @@ with col1:
 if mode == "Profiling":
     with col1:
         st.markdown('<div class="card" style="margin-top:12px">', unsafe_allow_html=True)
-        prof_type = st.selectbox("Method", ["Gradient", "Wenner"])
+        prof_type = st.selectbox("Method", ["Gradient", "Other"])
         C1C2 = st.number_input("Enter C1C2 distance (e.g. 300 or 400)", min_value=1.0, value=400.0, step=100.0)
         P1P2 = st.number_input("Enter P1P2 interval (e.g. 5)", min_value=1.0, value=10.0, step=1.0)
 
@@ -205,11 +230,12 @@ if mode == "Profiling":
 
             term = term.lower()  # Convert term to lowercase for case-insensitive matching
             return [n for n in options if n.lower().startswith(term)]
-            
+           
+        st.markdown('###### <span style="color: darkred;">Station</span>', unsafe_allow_html=True)
         station = st_searchbox( 
             search_function=search_nums,
             placeholder="-35/35",
-            key="num_search",label="Station"
+            key="num_search",label=None
         )
 
         if station is not None and station != "":
@@ -220,15 +246,13 @@ if mode == "Profiling":
                 station = None
         else:
             station = None
-        
-        
-        
-        
-        
-        
-        
+               
         #resistance = st.number_input("Resistance (ohms)", value=0.0,format="%.5f")
-        resistance = st.text_input("Resistance (ohms)")
+        
+        #resistance = st.text_input("Resistance (ohms)")
+        
+        resistance = st.text_input("Resistance (ohms)", key="resistance")
+        
         try:
             resistance = float(resistance)
             resistance = round(resistance,6)
@@ -288,28 +312,56 @@ if mode == "Profiling":
 if mode == "Sounding":
     with col1:
         st.markdown('<div class="card" style="margin-top:12px">', unsafe_allow_html=True)
-        prof_type = st.selectbox("Method", ["Schlumberger", "Other"])
+        prof_type = st.radio("Method", ["Schlumberger", "Wenner","Dipole-Dipole"],horizontal=True)
         
         #C1C2_val = st.number_input("Enter C1C2 (AB spacing)", min_value=1.0, value=10.0, step=1.0)
-        C1C2_val = st.text_input("Enter C1C2/2 (AB/2)")
-        try:
-            C1C2_val = float(C1C2_val)
-            C1C2_val = round(C1C2_val,6)
-        except:
+        
+        if prof_type == "Schlumberger":
+            C1C2_val = st.text_input("C1C2/2 (AB/2)",placeholder="1.5")
+            try:
+                C1C2_val = float(C1C2_val)
+                C1C2_val = round(C1C2_val,6)
+            except:
+                C1C2_val = None
+                        
+            #P1P2_val = st.number_input("Enter P1P2 (MN spacing)", min_value=1.0, value=1.0, step=1.0)
+            
+            P1P2_val = st.text_input("P1P2/2 (MN/2)",placeholder="0.5")
+            try:
+                P1P2_val = float(P1P2_val)
+                P1P2_val = round(P1P2_val,6)
+            except:
+                P1P2_val = None
+                
+        elif prof_type == "Wenner":
             C1C2_val = None
-        
-        
-        #P1P2_val = st.number_input("Enter P1P2 (MN spacing)", min_value=1.0, value=1.0, step=1.0)
-        
-        P1P2_val = st.text_input("Enter P1P2/2 (MN/2)")
-        try:
-            P1P2_val = float(P1P2_val)
-            P1P2_val = round(P1P2_val,6)
-        except:
-            P1P2_val = None
-        
+            P1P2_val = st.text_input("P1P2 or a",placeholder="1")
+            try:
+                P1P2_val = float(P1P2_val)
+                P1P2_val = round(P1P2_val,6)
+            except:
+                P1P2_val = None 
+                
+        elif prof_type == "Dipole-Dipole":
+            
+            C1C2_val = st.text_input("n",placeholder="1")
+            try:
+                C1C2_val = float(C1C2_val)
+                C1C2_val = round(C1C2_val,6)
+            except:
+                C1C2_val = None
+            #P1P2_val = st.number_input("Enter P1P2 (MN spacing)", min_value=1.0, value=1.0, step=1.0)
+            
+            P1P2_val = st.text_input("a",placeholder="1")
+            try:
+                P1P2_val = float(P1P2_val)
+                P1P2_val = round(P1P2_val,6)
+            except:
+                P1P2_val = None
+                
         
         #resistance = st.number_input("Resistance (ohms)", value=0.0, step=0.00001,format="%.5f")
+        
         resistance = st.text_input("Resistance (ohms)")
         try:
             resistance = float(resistance)
@@ -317,8 +369,22 @@ if mode == "Sounding":
         except:
             resistance = None
         r_mark = st.text_input("Remark")
+        
         if st.button("Record Sounding Data"):
-            gfactor = get_geometric_factor("Sounding", C1C2_val, P1P2=P1P2_val)
+            #gfactor = get_geometric_factor("Sounding", C1C2_val, P1P2=P1P2_val)
+            if prof_type == "Schlumberger":
+                gfactor = 3.1428 * ( ((C1C2_val) ** 2 - (P1P2_val) ** 2) / (2 * P1P2_val) )
+                gfactor = float(gfactor)
+                                   
+            elif prof_type == "Wenner": 
+                gfactor = 2*3.1428 * (P1P2_val)
+                gfactor = float(gfactor)
+                
+            elif prof_type == "Dipole-Dipole":
+                gfactor = 3.1428 * C1C2_val*(C1C2_val+1)*(C1C2_val+2)*(P1P2_val)
+                gfactor = float(gfactor)
+                
+            #get_geometric_factor(mode, C1C2, line_number=None, station=None, P1P2=None)
             #resistivity = round(resistance * gfactor, 6)
             
             if resistance is None:
@@ -330,19 +396,39 @@ if mode == "Sounding":
                 resistivity = None
                     
             else:
-                resistivity = round(resistance * gfactor, 6)
+                    resistivity = round(resistance * gfactor, 6)
+            if prof_type == "Schlumberger":
+                st.session_state.sounding[(C1C2_val, P1P2_val)] = {
+                    "C1C2/2": C1C2_val,
+                    "P1P2/2": P1P2_val,
+                    "resistance": resistance,
+                    "gfactor": gfactor,
+                    "resistivity": resistivity,
+                    "remark":r_mark
+                }
+                st.success(f"Recorded Sounding: C1C2/2={C1C2_val}, P1P2/2={P1P2_val}")
+            elif prof_type == "Wenner":   
+                st.session_state.sounding[(C1C2_val, P1P2_val)] = {
+                    #"C1C2/2": C1C2_val,
+                    "a": P1P2_val,
+                    "resistance": resistance,
+                    "gfactor": gfactor,
+                    "resistivity": resistivity,
+                    "remark":r_mark
+                }
+                st.success(f"Recorded Sounding: a = {P1P2_val}")
+            elif  prof_type == "Dipole-Dipole":  
+                st.session_state.sounding[(C1C2_val, P1P2_val)] = {
+                    "n": C1C2_val,
+                    "a": P1P2_val,
+                    "resistance": resistance,
+                    "gfactor": gfactor,
+                    "resistivity": resistivity,
+                    "remark":r_mark
+                }                
+                st.success(f"Recorded Sounding: n={C1C2_val}, a={P1P2_val}")
+              
             
-            
-            
-            st.session_state.sounding[(C1C2_val, P1P2_val)] = {
-                "C1C2/2": C1C2_val,
-                "P1P2/2": P1P2_val,
-                "resistance": resistance,
-                "gfactor": gfactor,
-                "resistivity": resistivity,
-                "remark":r_mark
-            }
-            st.success(f"Recorded Sounding: C1C2/2={C1C2_val}, P1P2/2={P1P2_val}")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # Right panel: view/edit data
@@ -388,16 +474,38 @@ with col2:
 
             if not df.empty:
                 fig, ax = plt.subplots()
-                ax.plot(df["C1C2/2"], df["resistivity"], marker="o")
-                ax.set_xlabel("C1C2/2 (AB/2)")
-                ax.set_ylabel("Resistivity")
-                ax.set_title("Sounding Curve")
-                ax.grid(True)
+                #prof_type = st.radio("Method", ["Schlumberger", "Wenner","Dipole-Dipole"],horizontal=True)
+                
+                if prof_type == "Schlumberger":
+                    
+                    #ax.plot(df["C1C2/2"], df["resistivity"], marker="o")   this in normal graph
+                    #for double log sheet
+                    ax.loglog(df["C1C2/2"], df["resistivity"],linestyle='-',linewidth=1.0,color='darkblue', marker="o",markersize=4,markerfacecolor='red',markeredgecolor='red')
+                    ax.set_xlabel("<----- C1C2/2 (AB/2) ----->")
+                    ax.set_title("Schlumberger-Sounding Curve")
+                    
+                    
+                elif prof_type == "Wenner":
+                    ax.loglog(df["a"], df["resistivity"], linestyle='-',linewidth=1.0,color='darkblue', marker="o",markersize=4,markerfacecolor='red',markeredgecolor='red')
+                    ax.set_xlabel("<----- a ----->")
+                    ax.set_title("Wenner-Sounding Curve")
+                
+                elif prof_type == "Dipole-Dipole":
+                    ax.loglog((df["a"]*df["n"]), df["resistivity"],linestyle='-',linewidth=1.0,color='darkblue', marker="o",markersize=4,markerfacecolor='red',markeredgecolor='red')
+                    ax.set_xlabel("n x a ----->")
+                    ax.set_title("Dipole-Dipole_Sounding Curve")   
+                    
+                ax.set_ylabel("<----- Resistivity ----->")
+                ax.set_xscale('log')
+                ax.set_yscale('log')
+                ax.minorticks_on()
+                ax.grid(True, which="both", linestyle="--", linewidth=0.4)
+                #ax.grid(True)
                 st.pyplot(fig)
         else:
             st.info("No sounding data recorded yet.")
 
-# Export
+# Exports
 st.markdown("---")
 st.header("Export to Excel")
 
@@ -447,20 +555,39 @@ def create_excel(all_lines: dict, sounding: dict, sounding_meta: dict):
             # Add sounding graph in separate sheet
             if not df_s.empty:
                 fig, ax = plt.subplots()
-                ax.plot(df_s["C1C2/2"], df_s["resistivity"], marker="o")
-                ax.set_xlabel("C1C2/2 (AB/2)")
-                ax.set_ylabel("Resistivity")
-                ax.set_title("Sounding Curve")
-                ax.grid(True)
+                if prof_type == "Schlumberger":
+                    ax.loglog(df_s["C1C2/2"], df_s["resistivity"], linestyle='-',linewidth=1.0,color='darkblue', marker="o",markersize=4,markerfacecolor='red',markeredgecolor='red')
+                    ax.set_xlabel("<----- C1C2/2 (AB/2) ----->")
+                    ax.set_title("Schlumberger-Sounding Curve")
+                    
+                
+                elif prof_type == "Wenner":
+                    ax.loglog(df_s["a"], df_s["resistivity"], linestyle='-',linewidth=1.0,color='darkblue', marker="o",markersize=4,markerfacecolor='red',markeredgecolor='red')
+                    ax.set_xlabel("<----- a ----->")
+                    ax.set_title("Wenner-Sounding Curve")
+                
+                elif prof_type == "Dipole-Dipole":
+                    ax.loglog((df_s["a"]*df_s["n"]), df_s["resistivity"], linestyle='-',linewidth=1.0,color='darkblue', marker="o",markersize=4,markerfacecolor='red',markeredgecolor='red')
+                    ax.set_xlabel(" <----- n x a ----->")
+                    ax.set_title("Dipole-Dipole Sounding Curve")
+                    
+                ax.set_ylabel("<----- Resistivity ----->")    
+                ax.set_xscale('log')
+                ax.set_yscale('log')
+                ax.minorticks_on()
+                ax.grid(True, which="both", linestyle="--", linewidth=0.4)
+                #ax.grid(True)
                 imgdata = io.BytesIO()
                 fig.savefig(imgdata, format="png", bbox_inches="tight")
                 imgdata.seek(0)
+                
                 worksheet = workbook.add_worksheet("Sounding_Graph")
                 worksheet.insert_image("B2", "sound_graph.png", {"image_data": imgdata})
                 plt.close(fig)
 
     output.seek(0)
     return output
+
 
 
 if st.button("Export"):
@@ -477,7 +604,7 @@ if st.button("Export"):
             "Geology": geology,
             "Soil Type/Color": soiltype,
             "Line direction": linedir,
-            "Method": mode,  # or the method used for sounding
+            "Method": prof_type,  # or the method used for sounding
         }
         excel_bytes = create_excel(
             st.session_state.lines,
