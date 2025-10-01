@@ -15,18 +15,26 @@ st.markdown(
     """
     <style>
     .stApp {
-      background: background-size: 100% 100%;
-      background-position: 0px 0px;
-      background-image: linear-gradient(90deg, #A044D6FF 0%, #71C4FFFF 100%);
+      background-image: url("https://www.color-hex.com/palettes/4719.png");
+      background-size: cover;
+      background-position: center;
+      /* You can keep a gradient overlay by layering it */
+      /* background-image:
+         linear-gradient(90deg, rgba(160,68,214,0.5), rgba(113,196,255,0.5)),
+         url("https://example.com/your-image.jpg"); */
       color: black;
     }
     .big-title {
-      font-size:40px;
-      font-weight:700;
-      text-align:center;
+      font-size: 40px;
+      font-weight: 700;
+      text-align: center;
       padding: 20px 0;
     }
-    .card {background: rgba(255,255,255,0.06); padding: 12px; border-radius:10px}
+    .card {
+      background: rgba(255,255,255,0.06);
+      padding: 12px;
+      border-radius: 10px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -631,5 +639,6 @@ if st.button("Export"):
             file_name=f"{client}_{loc_name}_{date}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",icon="📥"
         )
+
 
 
