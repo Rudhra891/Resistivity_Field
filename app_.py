@@ -317,7 +317,16 @@ if mode == "Sounding":
         #C1C2_val = st.number_input("Enter C1C2 (AB spacing)", min_value=1.0, value=10.0, step=1.0)
         
         if prof_type == "Schlumberger":
-            C1C2_val = st.text_input("C1C2/2 (AB/2)",placeholder="1.5")
+            AB_2 = [1,1.5,2,2.5,3,3.5,4,5,6,7,8,10,12,15,20,25,30,35,40,50,60,70,80,100,
+                    120,150,160,180,200,250,300,350,400,500,600,700,800,1000,1200,1500,
+                    1750,2000,2500,3000]
+            MN_2 = ["0.5","1","2","5","10","20","50"]
+            #C1C2_val = st.text_input("C1C2/2 (AB/2)",placeholder="1.5")
+            C1C2_val = st.selectbox("C1C2/2 (AB/2)",options=AB_2+["Other"])    
+            if C1C2_val == "Other":
+                C1C2_val_manual = st.text_input("C1C2/2 (AB/2)",placeholder="1.5")
+                if C1C2_val_manual:
+                    C1C2_val = C1C2_val_manual
             try:
                 C1C2_val = float(C1C2_val)
                 C1C2_val = round(C1C2_val,6)
@@ -326,7 +335,12 @@ if mode == "Sounding":
                         
             #P1P2_val = st.number_input("Enter P1P2 (MN spacing)", min_value=1.0, value=1.0, step=1.0)
             
-            P1P2_val = st.text_input("P1P2/2 (MN/2)",placeholder="0.5")
+            #P1P2_val = st.text_input("P1P2/2 (MN/2)",placeholder="0.5")
+            P1P2_val = st.selectbox("P1P2/2 (MN/2)",options=MN_2+["Other"]) #st.text_input("P1P2/2 (MN/2)",placeholder="0.5")
+            if P1P2_val == "Other":
+                P1P2_val_manual = st.text_input("P1P2/2 (MN/2)",placeholder="0.5")
+                if P1P2_val_manual:
+                    P1P2_val = P1P2_val_manual
             try:
                 P1P2_val = float(P1P2_val)
                 P1P2_val = round(P1P2_val,6)
@@ -617,4 +631,5 @@ if st.button("Export"):
             file_name=f"{client}_{loc_name}_{date}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",icon="📥"
         )
+
 
