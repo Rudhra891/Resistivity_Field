@@ -139,7 +139,7 @@ def get_geometric_factor(mode, C1C2, line_number=None, station=None, P1P2=None):
 col1, col2 = st.columns([1, 2])
 with col1:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    mode = st.radio("Choose mode", ["Profiling", "Sounding"])
+    mode = st.radio("Choose mode", ["Profiling", "Sounding"],horizontal=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col1:
@@ -639,6 +639,7 @@ if st.button("Export"):
             file_name=f"{client}_{loc_name}_{date}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",icon="📥"
         )
+
 
 
 
